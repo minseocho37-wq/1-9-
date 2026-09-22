@@ -1,5 +1,5 @@
 {
-  "name": "교과공지 실제 배포용",
+  "name": "school-notice",
   "version": "1.0.0",
   "private": true,
   "scripts": {
