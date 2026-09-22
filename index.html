@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>교과공지</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f6f7fb;color:#20242c;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif}
+header{height:68px;background:#fff;border-bottom:1px solid #e8eaf0;display:flex;align-items:center}.wrap{max-width:1080px;margin:auto;padding:0 20px;width:100%}
+.nav{display:flex;justify-content:space-between;align-items:center}.logo{font-weight:850;font-size:21px}.logo i{font-style:normal;color:#5869dc}
+button{border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer;background:#edf0f5}.primary{background:#5869dc;color:#fff}.danger{background:#fff0f0;color:#c43e3e}
+.hero{padding:42px 0 25px}.hero h1{margin:0 0 8px;font-size:34px}.muted{color:#7d8491;font-size:13px}
+.tabs{display:flex;gap:7px;overflow:auto;padding-bottom:15px}.tab{white-space:nowrap}.tab.active{background:#5869dc;color:#fff}
+.layout{display:grid;grid-template-columns:1.5fr .7fr;gap:20px}.card{background:#fff;border:1px solid #e5e7ed;border-radius:16px;padding:20px}
+.notice{padding:16px 4px;border-bottom:1px solid #eef0f4;cursor:pointer}.notice:last-child{border:0}.notice b{font-size:16px}.meta{font-size:12px;color:#858c98;margin-bottom:6px}.badge{font-size:10px;background:#eeeefe;color:#5869dc;border-radius:5px;padding:4px 6px;margin-left:5px}
+.side{padding:13px 0;border-bottom:1px solid #eef0f4}.side:last-child{border:0}
+.overlay{position:fixed;inset:0;background:#0006;display:none;align-items:center;justify-content:center;padding:18px;z-index:5}.modal{background:white;border-radius:17px;padding:22px;width:min(650px,100%);max-height:90vh;overflow:auto}
+.modalhead{display:flex;justify-content:space-between}.close{background:none;font-size:22px;padding:0 6px}
+label{display:block;font-size:13px;font-weight:750;margin:14px 0 6px}input,textarea,select{width:100%;padding:11px;border:1px solid #dfe2e8;border-radius:9px;font:inherit}textarea{min-height:150px}.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.admin{padding:14px 0;border-bottom:1px solid #eef0f4;display:flex;gap:10px;align-items:center}.admin .info{flex:1}.empty{text-align:center;padding:35px;color:#89909c}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.hero h1{font-size:28px}}
+</style></head>
+<body>
+<header><div class="wrap nav"><div class="logo">교과<i>공지</i></div><div id="account"></div></div></header>
+<main class="wrap"><section class="hero"><h1>교과 공지사항</h1><p class="muted">교과부장이 직접 등록하고 변경하면 모든 학생에게 즉시 반영됩니다.</p></section>
+<div class="tabs" id="tabs"></div><div class="layout"><section class="card"><h2>최근 공지</h2><div id="list"></div></section><aside class="card"><h2>최근 업데이트</h2><div id="recent"></div></aside></div></main>
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<script>
+let subject="전체", me=null, notices=[];
+const $=x=>document.getElementById(x);
+async function api(url,opt={}){const r=await fetch(url,opt);const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"오류");return d}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function load(){notices=await api("/api/notices"+(subject==="전체"?"":"?subject="+encodeURIComponent(subject)));render()}
+function render(){
+ $("tabs").innerHTML=["전체","국어","영어","수학","사회","과학","한국사","미술"].map(s=>`<button class="tab ${s===subject?"active":""}" onclick="setSubject('${s}')">${s}</button>`).join("");
+ $("list").innerHTML=notices.length?notices.map(n=>`<div class="notice" onclick="detail(${n.id})"><div class="meta">${n.subject} · ${new Date(n.updated_at).toLocaleString("ko-KR")}${n.important?'<span class="badge">중요</span>':""}</div><b>${esc(n.title)}</b></div>`).join(""):'<div class="empty">등록된 공지가 없습니다.</div>';
+ $("recent").innerHTML=notices.slice(0,7).map(n=>`<div class="side"><b>${n.subject} · ${esc(n.title)}</b><div class="muted">${new Date(n.updated_at).toLocaleString("ko-KR")}</div></div>`).join("")||'<div class="empty">업데이트 없음</div>';
+}
+function setSubject(s){subject=s;load()}
+function openModal(x){$("modal").innerHTML=x;$("overlay").style.display="flex"}
+function closeModal(){$("overlay").style.display="none"}
+async function detail(id){const n=await api("/api/notices/"+id);openModal(`<div class="modalhead"><h2>${esc(n.title)}</h2><button class="close" onclick="closeModal()">×</button></div><p class="muted">${n.subject} · ${new Date(n.updated_at).toLocaleString("ko-KR")}</p><p style="white-space:pre-wrap;line-height:1.75">${esc(n.content)}</p>${n.file_name?`<p>📎 <a href="/api/files/${encodeURIComponent(n.stored_file)}">${esc(n.file_name)}</a></p>`:""}`)}
+function loginForm(){openModal(`<div class="modalhead"><h2>교과부장 로그인</h2><button class="close" onclick="closeModal()">×</button></div><label>교과</label><select id="lu">${["국어","영어","수학","사회","과학","한국사","미술"].map(s=>`<option>${s}</option>`).join("")}</select><label>비밀번호</label><input id="lp" type="password" placeholder="학교에서 발급받은 비밀번호"><div class="actions"><button onclick="closeModal()">취소</button><button class="primary" onclick="login()">로그인</button></div>`)}
+async function login(){try{const username=$("lu").value;const d=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password:$("lp").value})});me=d.user;closeModal();admin()}catch(e){alert(e.message)}}
+async function logout(){await api("/api/logout",{method:"POST"});me=null;location.reload()}
+function account(){ $("account").innerHTML=me?`<button onclick="admin()">${esc(me.subject)} 관리</button> <button onclick="logout()">로그아웃</button>`:`<button onclick="loginForm()">교과부장 로그인</button>`}
+async function admin(){
+ const all=(await api("/api/notices?subject="+encodeURIComponent(me.subject)));
+ openModal(`<div class="modalhead"><h2>${esc(me.subject)} 교과 공지 관리</h2><button class="close" onclick="closeModal()">×</button></div><div class="actions"><button class="primary" onclick="form()">+ 새 공지</button></div><div>${all.map(n=>`<div class="admin"><div class="info"><b>${esc(n.title)}</b><div class="muted">${new Date(n.updated_at).toLocaleString("ko-KR")}</div></div><button onclick='form(${JSON.stringify(n)})'>수정</button><button class="danger" onclick="del(${n.id})">삭제</button></div>`).join("")||'<div class="empty">등록된 공지가 없습니다.</div>'}</div>`);
+}
+function form(n=null){
+ openModal(`<div class="modalhead"><h2>${n?"공지 수정":"새 공지 작성"}</h2><button class="close" onclick="admin()">×</button></div>
+ <label>제목</label><input id="ft" value="${esc(n?.title||"")}"><label>내용</label><textarea id="fc">${esc(n?.content||"")}</textarea>
+ <label>첨부파일 (최대 10MB)</label><input id="ff" type="file"><label><input id="fi" type="checkbox" ${n?.important?"checked":""} style="width:auto"> 중요 공지</label>
+ <div class="actions"><button onclick="admin()">취소</button><button class="primary" onclick="saveNotice(${n?.id||"null"})">저장</button></div>`);
+}
+async function saveNotice(id){
+ const fd=new FormData();fd.append("title",$("ft").value);fd.append("content",$("fc").value);fd.append("important",$("fi").checked?"1":"0");if($("ff").files[0])fd.append("file",$("ff").files[0]);
+ try{await api(id?"/api/notices/"+id:"/api/notices",{method:id?"PUT":"POST",body:fd});closeModal();await load();}catch(e){alert(e.message)}
+}
+async function del(id){if(!confirm("이 공지를 삭제할까요?"))return;try{await api("/api/notices/"+id,{method:"DELETE"});admin();load()}catch(e){alert(e.message)}}
+$("overlay").onclick=e=>{if(e.target.id==="overlay")closeModal()};
+async function init(){me=(await api("/api/me")).user;account();await load();const es=new EventSource("/api/events");es.onmessage=e=>{const d=JSON.parse(e.data);if(d.type==="notice_changed")load()}}
+init();
+</script></body></html>
