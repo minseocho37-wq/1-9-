@@ -56,7 +56,7 @@ app.use(session({
  store:new SQLiteStore({db:"sessions.sqlite",dir:DATA}),
  cookie:{httpOnly:true,sameSite:"lax",secure:false,maxAge:8*60*60*1000}
 }));
-app.use(express.static(path.join(BASE,"public")));
+app.use(express.static(BASE));
 
 const upload = multer({
  storage: multer.diskStorage({
