@@ -38,12 +38,12 @@ CREATE TABLE IF NOT EXISTS notices(
 );
 `);
 
-const subjects = ["국어","영어","수학","사회","과학","한국사","미술"];
-const count = db.prepare("SELECT COUNT(*) c FROM users").get().c;
-if (!count) {
-  const hash = bcrypt.hashSync("1234", 10);
-  const insert = db.prepare("INSERT INTO users(username,password_hash,subject,role) VALUES(?,?,?,'teacher')");
-  const tx = db.transaction(()=>subjects.forEach(s=>insert.run(s,hash,s)));
+const subjects=["전체","국어","영어","수학","사회","과학","한국사","기술가정","미술","체육"];
+const hash=bcrypt.hashSync("1234",10);
+const ins=db.prepare(
+  "INSERT OR IGNORE INTO users(username,password_hash,subject,role) VALUES(?,?,?,'teacher')"
+);
+db.transaction(()=>subjects.forEach(s=>ins.run(s,hash,s)))();
   tx();
   console.log("Demo accounts created: subject username / password 1234");
 }
